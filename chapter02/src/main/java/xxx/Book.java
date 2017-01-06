@@ -9,19 +9,19 @@ import javax.persistence.NamedQuery;
 @Entity
 @NamedQuery(name="findAllBooks", query="SELECT b FROM Book b")
 public class Book {
-    @Id
-    @GeneratedValue
-    private Long id;
-    @Column(nullable=false)
-    private String title;
-    private Float price;
-    @Column(length=2000)
-    private String description;
+	@Id
+	@GeneratedValue
+	private Long id;
+	@Column(nullable=false)
+	private String title;
+	private Float price;
+	@Column(length=2000)
+	private String description;
 	private String isbn;
-    private Integer nbOfPage;
-    private Boolean illustrations;
-
-    public Long getId() {
+	private Integer nbOfPage;
+	private Boolean illustrations;
+	
+	public Long getId() {
 		return id;
 	}
 	public void setId(Long id) {
