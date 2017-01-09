@@ -58,4 +58,5 @@ AUTO, SEQUENCE, ID, TABLE
 
 アノテーションはフィールド(メンバ変数)／プロパティ(メンバ変数に対応するgetter/setter)のどちらにも指定することができる。
 
-
+実行方法
+mvn exec:java -Dexec.mainClass="xxx.Main"
