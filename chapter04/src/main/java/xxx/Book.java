@@ -2,6 +2,7 @@ package xxx;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Table;
 
 @Entity
 public class Book {
@@ -13,6 +14,10 @@ public class Book {
 	private String isbn ;
 	private Integer nbOfPage ;
 	private Boolean illustrations ;
+
+	public Book(){
+	}
+
 	public Long getId() {
 		return id;
 	}

@@ -8,6 +8,9 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.OneToOne;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
+import javax.persistence.NamedNativeQuery;
 
 @Entity
 /*
@@ -16,7 +19,24 @@ import javax.persistence.OneToOne;
  * キャッシュ方法はpersistence.xmlのshared-cache-mode属性で指定する.
  */
 @Cacheable(true)
+/*
+ * 名前付きクエリ.
+ */
+@NamedQueries({
+//	 @NamedQuery(name="findAll",query="select c from Customer c")
+	/*
+	 * 名前付きクエリはスコープ内でユニークでなければならない。
+	 * また、文字列で定義した場合実行時例外が発生する可能性があるため,
+	 * クエリ名を定数で定義する.
+	 */
+	 @NamedQuery(name=Customer.FIND_ALL,query="select c from Customer c")
+	,@NamedQuery(name="findVincent",query="select c from Customer c where c.firstName='Vincent'")
+	,@NamedQuery(name="findWithParam",query="select c from Customer c where c.firstName = :fname")
+})
+@NamedNativeQuery(name=Customer.FIND_ALL2,query="select * from Customer")
 public class Customer {
+	public static final String FIND_ALL = "Customer.findAll";
+	public static final String FIND_ALL2 = "Customer.findAll2";
 	@Id
 	@GeneratedValue
 	private Long id;
@@ -24,7 +44,7 @@ public class Customer {
 	private String lastName;
 	private String email;
 
-	//@OneToOne(fetch=FetchType.LAZY)
+//	@OneToOne(fetch=FetchType.LAZY)
 	/*
 	 * orphanRemoval=trueの場合、
 	 * addressが参照されなくなった場合にデータベースからも削除される.

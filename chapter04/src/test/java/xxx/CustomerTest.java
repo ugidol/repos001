@@ -8,6 +8,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 import java.sql.SQLException;
+import java.util.List;
 
 import javax.persistence.Cache;
 import javax.persistence.EntityManager;
@@ -15,6 +16,12 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityNotFoundException;
 import javax.persistence.EntityTransaction;
 import javax.persistence.Persistence;
+import javax.persistence.Query;
+import javax.persistence.TypedQuery;
+
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
 
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -300,4 +307,185 @@ public class CustomerTest {
 		 */
 		assertFalse(cache.contains(Customer.class, customer.getId()));
 	}
+	/**
+	 * 動的なクエリは毎回JPQLの解析が発生する.
+	 */
+	@Test
+	public void test_code_query() throws Exception {
+		{
+			tx.begin();
+			Query query = em.createQuery("DELETE FROM Customer c");
+			query.executeUpdate();
+			Customer customer = new Customer("Vincent","Balla","tballa@mail.com");
+			em.persist(customer);
+			tx.commit();
+		}
+		{
+			/*
+			 * 全てのCustomerを取得する(1) 
+			 * EntityManager.createQuery(String strQuery)
+			 */
+			Query query = em.createQuery("SELECT c FROM Customer c");
+			List<?> customers = query.getResultList();
+			assertEquals(1,customers.size());
+		}
+		{
+			/*
+			 * 全てのCustomerを取得する(2) 
+			 * EntityManager.createQuery(String strQuery,Class resultClass)
+			 */
+			TypedQuery<Customer> query = em.createQuery("SELECT c FROM Customer c", Customer.class);
+			List<Customer> customers = query.getResultList();
+			assertEquals(1,customers.size());
+		}
+		{
+			/*
+			 * 動的なクエリ(1)
+			 */
+			String jpqlQuery = "SELECT c FROM Customer c";
+			jpqlQuery += " WHERE c.firstName = 'Vincent'";
+			Query query = em.createQuery(jpqlQuery);
+			List<?> customers = query.getResultList();
+		}
+		{
+			/*
+			 * 動的なクエリ(2)
+			 * パラメータ使用(1)
+			 */
+			String jpqlQuery = "SELECT c FROM Customer c";
+			jpqlQuery += " WHERE c.firstName = :fname";
+			Query query = em.createQuery(jpqlQuery);
+			query.setParameter("fname","Vincent");
+			List<?> customers = query.getResultList();
+		}
+		{
+			/*
+			 * 動的なクエリ(3)
+			 * パラメータ使用(2)
+			 */
+			String jpqlQuery = "SELECT c FROM Customer c";
+			jpqlQuery += " WHERE c.firstName = ?1";
+			Query query = em.createQuery(jpqlQuery);
+			query.setParameter(1,"Vincent");
+			List<?> customers = query.getResultList();
+		}
+		{
+			/*
+			 * 動的なクエリ(4)
+			 * ページ制御
+			 */
+			TypedQuery<Customer> query = em.createQuery("SELECT c FROM Customer c", Customer.class);
+			query.setMaxResults(10);
+			List<Customer> customers = query.getResultList();
+		}
+	}
+
+	@Test
+	public void test_code_static_query() throws Exception {
+		{
+			tx.begin();
+			Query query = em.createQuery("DELETE FROM Customer c");
+			query.executeUpdate();
+			Customer customer = new Customer("Vincent","Balla","tballa@mail.com");
+			em.persist(customer);
+			tx.commit();
+		}
+		{
+			/*
+			 * 名前付きクエリ(1)
+			 */
+			Query query = em.createNamedQuery(Customer.FIND_ALL);
+			List<?> customers = query.getResultList();
+			assertEquals(1,customers.size());
+		}
+		{
+			/*
+			 * 名前付きクエリ(1-1)
+			 * EntityManager.createNamedQuery()に誤ったクエリ名を渡すと,
+			 * IllegalArgumentExceptionが発生する.
+			 */
+			try{
+				Query query = em.createNamedQuery("not_defined_name");
+				List<?> customers = query.getResultList();
+				assertEquals(1,customers.size());
+			}
+			catch(Exception e){
+				assertTrue((e instanceof IllegalArgumentException));
+			}
+		}
+		{
+			/*
+			 * 名前付きクエリ(2)
+			 */
+			TypedQuery<Customer> query = em.createNamedQuery(Customer.FIND_ALL, Customer.class);
+			List<Customer> customers = query.getResultList();
+			assertEquals(1,customers.size());
+		}
+		{
+			/*
+			 * 名前付きクエリ(3)
+			 * パラメタ使用
+			 */
+			Query query = em.createNamedQuery("findWithParam");
+			query.setParameter("fname","Vincent");
+			query.setMaxResults(3);
+			List<?> customers = query.getResultList();
+			assertEquals(1,customers.size());
+		}
+	}
+	@Test
+	public void test_code_native_query() throws Exception {
+		{
+			tx.begin();
+			Query query = em.createQuery("DELETE FROM Customer c");
+			query.executeUpdate();
+			Customer customer = new Customer("Vincent","Balla","tballa@mail.com");
+			em.persist(customer);
+			tx.commit();
+		}
+		{
+			/*
+			 * ネイティブクエリ(動的)
+			 */
+			Query query = em.createNativeQuery("SELECT * FROM customer",Customer.class);
+			List<?> customers = query.getResultList();
+			assertEquals(1,customers.size());
+		}
+	}
+	@Test
+	public void test_code_native_static_query() throws Exception {
+		{
+			tx.begin();
+			Query query = em.createQuery("DELETE FROM Customer c");
+			query.executeUpdate();
+			Customer customer = new Customer("Vincent","Balla","tballa@mail.com");
+			em.persist(customer);
+			tx.commit();
+		}
+		{
+			/*
+			 * ネイティブクエリ(名前付き)
+			 */
+			Query query = em.createNamedQuery(Customer.FIND_ALL2,Customer.class);
+			List<?> customers = query.getResultList();
+			assertEquals(1,customers.size());
+		}
+	}
+	@Test
+	public void test_code_criteria_query() throws Exception {
+		/*
+		 * CriteriaAPIを使用した問い合わせ.
+		 * (JPA 2.0より)
+		 */
+		CriteriaBuilder builder = em.getCriteriaBuilder();
+		CriteriaQuery<Customer> criteriaQuery = builder.createQuery(Customer.class);
+		Root<Customer> c = criteriaQuery.from(Customer.class);
+		criteriaQuery.select(c).where(builder.equal(c.get("firstName"),"Vincent"));
+		//
+		Query query = em.createQuery(criteriaQuery);
+		List<?> customers = query.getResultList();
+		assertEquals(1,customers.size());
+	}
+
+
 }
